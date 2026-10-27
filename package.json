@@ -1,0 +1,14 @@
+{
+    "name": "agent-study-1",
+    "version": "1.0.0",
+    "description": "这是一个ai智能体demo，能简单的跟他聊天、计算数字，读取、写入文件啥的？",
+    "main": "step1-hello.js",
+    "type": "module",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node --env-file=.env ./src/main.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
