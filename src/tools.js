@@ -74,6 +74,23 @@ export const toolSchemas = [
                 required: ['file_path', 'content']
             }
         }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'delete_file',
+            description: '删除一个文件（只能删除当前项目目录内的文件，且不能删除项目关键文件）',
+            parameters: {
+                type: 'object',
+                properties: {
+                    file_path: {
+                        type: 'string',
+                        description: '要删除的文件路径'
+                    }
+                },
+                required: ['file_path']
+            },
+        }
     }
 ]
 
@@ -105,6 +122,24 @@ export const toolHandlers = {
         await fs.writeFile(target, content, 'utf-8');
         return `已写入 ${target}`;
     },
+    async delete_file({ file_path }) {
+        const target = path.resolve(file_path);
+        const root = path.resolve(".");
+        if (!target.startsWith(root)) {
+            throw new Error("禁止删除除项目目录之外的文件");
+        };
+
+        const protectedNames = [
+            'package.json', '.env', '.gitignore',
+            'llm.js', 'tools.js', 'agent.js', 'main.js'
+        ]
+        if (protectedNames.includes(path.basename(target))) {
+            throw new Error("这是一个项目关键文件，禁止删除");
+        };
+
+        await fs.unlink(target);
+        return `已删除${target}`;
+    }
 }
 
 // ============ 统一入口：模型报工具名 + 参数 JSON，我们负责执行 ============

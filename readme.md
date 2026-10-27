@@ -1,6 +1,6 @@
 # agent-study-1
 
-一个基于 DeepSeek 的 **AI 智能体（Agent）Demo**：它不只会聊天，还能在需要真实信息时主动调用工具——查时间、算数学、列目录、读文件、写文件，然后把结果整理成中文回答。
+一个基于 DeepSeek 的 **AI 智能体（Agent）Demo**：它不只会聊天，还能在需要真实信息时主动调用工具——查时间、算数学、列目录、读文件、写文件、删文件，然后把结果整理成中文回答。
 
 ## 核心思路
 
@@ -26,8 +26,7 @@ agent-study-1/
 ├── package.json
 ├── .env             # 存放 DEEPSEEK_API_KEY（已被 .gitignore 忽略）
 ├── .gitignore
-├── result.txt       # 示例输出
-└── test.txt         # 工具读写测试文件
+└── result.txt       # 示例输出
 ```
 
 ## 模块说明
@@ -47,7 +46,7 @@ agent-study-1/
   5. 超过 `maxTurns`（默认 12）则提前结束，防止死循环。
 
 ### `src/tools.js`
-定义并实现 5 个工具：
+定义并实现 6 个工具：
 
 | 工具名 | 作用 | 参数 |
 | --- | --- | --- |
@@ -56,10 +55,12 @@ agent-study-1/
 | `list_files` | 列出目录下的文件与子目录 | `dir`（默认当前目录） |
 | `read_file` | 读取文本文件内容 | `file_path` |
 | `write_file` | 写入文本文件（**仅限项目目录内**） | `file_path`, `content` |
+| `delete_file` | 删除文件（**仅限项目目录内，且不能删关键文件**） | `file_path` |
 
 安全设计：
 - `calculator` 用正则白名单校验表达式，只允许数字和运算符。
-- `write_file` 用 `path.resolve` 校验目标路径必须位于项目根目录内，防止写到系统其他位置。
+- `write_file` / `delete_file` 用 `path.resolve` 校验目标路径必须位于项目根目录内，防止操作到系统其他位置。
+- `delete_file` 额外维护一份关键文件黑名单（`package.json`、`.env`、`.gitignore`、`llm.js`、`tools.js`、`agent.js`、`main.js`），禁止删除。
 - `runTool` 统一入口：工具不存在或执行出错时，把错误信息作为结果返回给模型，让模型自行调整重试。
 
 ### `src/main.js`
