@@ -9,6 +9,6 @@
         "start": "node --env-file=.env ./src/main.js"
     },
     "keywords": [],
-    "author": "",
+    "author": "Jianfeng Li",
     "license": "ISC"
 }
