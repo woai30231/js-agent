@@ -78,6 +78,20 @@ export const toolSchemas = [
     {
         type: 'function',
         function: {
+            name: 'fetch_webpage',
+            description: '读取一个网页的内容，用于获取最新信息',
+            parameters: {
+                type: 'object',
+                properties: {
+                    url: { type: 'string', description: '完整的网页地址，需以 http 或 https 开头' }
+                },
+                required: ['url']
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
             name: 'delete_file',
             description: '删除一个文件（只能删除当前项目目录内的文件，且不能删除项目关键文件）',
             parameters: {
@@ -139,9 +153,35 @@ export const toolHandlers = {
 
         await fs.unlink(target);
         return `已删除${target}`;
-    }
+    },
+    async fetch_webpage({ url }) {
+        if (!/^https?:\/\//.test(url)) {
+            throw new Error('url 必须以 http:// 或 https:// 开头');
+        }
+
+        const res = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            signal: AbortSignal.timeout(15000), // 15 秒超时，防止卡死
+        });
+        if (!res.ok) throw new Error(`网页返回 ${res.status}`);
+
+        const text = htmlToText(await res.text());
+
+        // 关键：必须截断！网页动辄几十万字，全塞进历史会把 token 撑爆
+        return text.slice(0, 4000);
+    },
 }
 
+// 把 HTML 粗略转成纯文本：去掉脚本样式标签，再剥离剩余标签
+function htmlToText(html) {
+    return html
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
 // ============ 统一入口：模型报工具名 + 参数 JSON，我们负责执行 ============
 export async function runTool(name, argsJson) {
     const handler = toolHandlers[name];
