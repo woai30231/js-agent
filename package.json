@@ -6,7 +6,9 @@
     "type": "module",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node --watch ./src/main.js"
+        "start": "node --watch ./src/main.js",
+        "start:dev": "node --watch --env-file=.env.development ./src/main.js",
+        "start:prod": "node --env-file=.env.production ./src/main.js"
     },
     "keywords": [],
     "author": "Jianfeng Li",

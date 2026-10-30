@@ -1,3 +1,6 @@
+import { config } from './config.js';
+console.log(`[config] env=${config.env} model=${config.model} temp=${config.temperature}`);
+
 import readline from 'node:readline/promises';
 import { runAgent, SYSTEM_PROMPT } from './agent.js';
 
