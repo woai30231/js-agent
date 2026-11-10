@@ -1,11 +1,11 @@
 // Please install OpenAI SDK first: `npm install openai`
 
 import OpenAI from "openai";
-import { config } from '.config';
+import { config } from './config.js';
 
 const openai = new OpenAI({
     baseURL: 'https://api.deepseek.com',
-    apiKey: process.env.DEEPSEEK_API_KEY,
+    apiKey: config.apiKey,
 });
 
 async function main() {
