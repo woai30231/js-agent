@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadEnvFile } from 'node:process';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+export const projectRoot = root;
 const env = process.env.NODE_ENV ?? 'development';
 const isProd = env === 'production';
 
@@ -25,7 +26,6 @@ for (const f of files) {
 const REQUIRED = ['DEEPSEEK_API_KEY'];
 const missing = REQUIRED.filter((k) => {
     const v = process.env[k];
-    console.log(v)
     return !v || !v.startsWith('sk-');
 })
 

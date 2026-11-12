@@ -1,5 +1,7 @@
 import express from 'express';
 import { chat } from './llm.js';
+import { retrieve } from './retriever.js';
+
 
 const app = express();
 app.use(express.json());
@@ -18,33 +20,55 @@ app.get('/api/health', (req, res) => {
     res.json({ ok: true });
 });
 
-// 问答接口：sources 字段预留给下阶段 RAG 检索片段
+// 问答接口：RAG 全流程 —— 检索 → 拼prompt → 生成 → 返回 answer + sources
 app.post('/api/chat', async (req, res) => {
     const question = req.body?.question;
 
-    // 入参校验：question 必须是非空字符串
     if (!question || typeof question !== 'string' || !question.trim()) {
         return res.status(400).json({ error: 'question 不能为空' });
     }
 
     try {
-        const messages = [{ role: 'user', content: question.trim() }];
-        const reply = await chat({ messages });
+        // ① 检索：从知识库找出最相关的 top-3 片段
+        const hits = await retrieve(question, 3);
 
-        // 注意：当前 llm.js 的 chat 返回的是"裸 message"（含 content 字段）。
-        // 后续把 llm.js 重构为返回 { message, usage, model } 时，这里要改成 reply.message.content。
+        // ② 把片段拼成"资料"上下文
+        const context = hits
+            .map((s, i) => `【资料${i + 1}】（来源：${s.file} · ${s.title}）\n${s.content}`)
+            .join('\n\n');
+
+        // ③ 让模型基于资料回答，禁止编造
+        const messages = [
+            {
+                role: 'system',
+                content: '你是知识库问答助手。请严格根据下面提供的资料回答用户问题；如果资料里没有答案，就回答"知识库中未找到相关内容"，不要凭记忆编造。',
+            },
+            {
+                role: 'user',
+                content: `【资料】\n${context}\n\n【问题】\n${question.trim()}`,
+            },
+        ];
+
+        // ④ 调模型生成
+        const reply = await chat({ messages });
         const answer = reply.content ?? '（模型没有返回内容）';
 
+        // ⑤ sources 填真实检索结果（content 截断，避免响应过大）
         res.json({
             answer,
-            sources: [], // 预留给 RAG 的检索片段，当前阶段恒为空数组
+            sources: hits.map((s) => ({
+                file: s.file,
+                title: s.title,
+                content: s.content.slice(0, 200),
+                score: Number(s.score.toFixed(4)),
+            })),
         });
     } catch (err) {
-        // 不把堆栈和 apiKey 暴露给客户端，只返回可读信息
         console.error('[chat] 调用失败：', err.message);
         res.status(500).json({ error: '调用模型失败，请稍后重试' });
     }
 });
+
 
 const PORT = Number(process.env.PORT ?? 3000);
 app.listen(PORT, () => {
